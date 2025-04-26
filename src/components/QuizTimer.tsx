@@ -1,6 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 interface QuizTimerProps {
   timeLimit: number; // in minutes
@@ -43,8 +44,7 @@ const QuizTimer: React.FC<QuizTimerProps> = ({ timeLimit, onTimeUp }) => {
       </div>
       <Progress
         value={percentageLeft}
-        className="h-2"
-        indicatorClassName={isWarning ? "bg-orange-500" : "bg-quiz-primary"}
+        className={cn("h-2", isWarning ? "bg-secondary [&>div]:bg-orange-500" : "bg-secondary [&>div]:bg-quiz-primary")}
       />
     </div>
   );
