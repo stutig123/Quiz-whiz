@@ -12,7 +12,7 @@ import {
   exportActivitiesAsJson
 } from "@/lib/fitness-utils";
 import { Button } from "@/components/ui/button";
-import { Clock, Flame, Calendar, Download } from "lucide-react";
+import { Clock, Flame, Calendar, Download, Weight } from "lucide-react";
 import {
   ChartContainer,
   ChartTooltip,
@@ -41,13 +41,23 @@ const Dashboard: React.FC<DashboardProps> = ({ activities, goals }) => {
   const totalDuration = calculateTotalDuration(weeklyActivities);
   const chartData = getWeeklyActivityData(activities);
   
+  // Calculate daily average calories
+  const dailyAverageCalories = weeklyActivities.length > 0 
+    ? Math.round(totalCalories / weeklyActivities.length) 
+    : 0;
+  
+  // Calculate calories per minute
+  const caloriesPerMinute = totalDuration > 0 
+    ? Math.round((totalCalories / totalDuration) * 10) / 10 
+    : 0;
+  
   const chartConfig = {
     calories: { label: "Calories", color: "var(--primary)" },
   };
   
   return (
     <div className="grid gap-8">
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Weekly Calories</CardTitle>
@@ -61,12 +71,23 @@ const Dashboard: React.FC<DashboardProps> = ({ activities, goals }) => {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-            <CardTitle className="text-sm font-medium">Weekly Duration</CardTitle>
-            <Clock className="w-4 h-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Daily Average</CardTitle>
+            <Weight className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalDuration}</div>
-            <p className="text-xs text-muted-foreground">minutes of activity this week</p>
+            <div className="text-2xl font-bold">{dailyAverageCalories}</div>
+            <p className="text-xs text-muted-foreground">calories per active day</p>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+            <CardTitle className="text-sm font-medium">Burn Rate</CardTitle>
+            <Flame className="w-4 h-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{caloriesPerMinute}</div>
+            <p className="text-xs text-muted-foreground">calories per minute</p>
           </CardContent>
         </Card>
         
@@ -120,14 +141,24 @@ const Dashboard: React.FC<DashboardProps> = ({ activities, goals }) => {
       {/* Weekly Activity Chart */}
       <Card className="col-span-full">
         <CardHeader>
-          <CardTitle>Weekly Activity</CardTitle>
+          <CardTitle>Weekly Calorie Burn</CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <div className="h-[300px] w-full">
             <ChartContainer config={chartConfig}>
               <BarChart data={chartData}>
-                <XAxis dataKey="name" />
-                <YAxis />
+                <XAxis 
+                  dataKey="name" 
+                  label={{ value: 'Day of Week', position: 'bottom', offset: 0 }}
+                />
+                <YAxis 
+                  label={{ 
+                    value: 'Calories Burned', 
+                    angle: -90, 
+                    position: 'insideLeft',
+                    offset: 10
+                  }}
+                />
                 <CartesianGrid strokeDasharray="3 3" />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <ChartLegend content={<ChartLegendContent />} />
