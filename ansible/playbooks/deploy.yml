@@ -1,0 +1,32 @@
+# playbook.yml
+---
+- name: Configure EC2 Instance
+  hosts: webservers
+  become: yes
+  tasks:
+  
+    - name: Update apt packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+    
+    - name: Install NGINX
+      apt:
+        name: nginx
+        state: present
+    
+    - name: Start NGINX service
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+    
+    - name: Ensure NGINX is running
+      command: curl -I localhost
+      register: result
+      failed_when: "'200 OK' not in result.stdout"
+      changed_when: false
+
+    - name: Print public IP of the EC2 instance
+      debug:
+        msg: "EC2 Instance Public IP is {{ hostvars['3.110.115.198'].ansible_host }}"
