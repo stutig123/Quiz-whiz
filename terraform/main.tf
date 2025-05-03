@@ -1,108 +1,80 @@
-# Provider Configuration
 provider "aws" {
-  region = "us-east-1"  # Change to your preferred AWS region
+  region = "ap-south-1"
 }
 
-# Variables Configuration
-variable "instance_type" {
-  description = "Type of EC2 instance"
-  type        = string
-  default     = "t2.micro"  # Default EC2 instance type
-}
-
-variable "ami_id" {
-  description = "AMI ID for the EC2 instance"
-  type        = string
-  default     = "ami-0c55b159cbfafe1f0"  # Replace with the appropriate AMI for your region
-}
-
-variable "key_name" {
-  description = "Key name for the EC2 instance"
-  type        = string
-  default     = "your-ssh-key-name"  # Replace with your SSH key name
-}
-
-variable "region" {
-  description = "AWS region to deploy resources"
-  type        = string
-  default     = "us-east-1"  # Default AWS region
-}
-
-# EC2 Instance Resource
-resource "aws_instance" "quiz_instance" {
-  ami           = var.ami_id  # Using variable for AMI
-  instance_type = var.instance_type  # Using variable for instance type
-  key_name      = var.key_name  # Using variable for key name
-
+# -------------------- VPC --------------------
+resource "aws_vpc" "simple_vpc" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
   tags = {
-    Name = "Quiz-Whiz-Kid"
+    Name = "SimpleVPC"
   }
-
-  # Optionally, you can add security groups, user_data, etc.
 }
 
-# Output Values for easy access after Terraform apply
-output "instance_public_ip" {
-  description = "Public IP of the EC2 instance"
-  value       = aws_instance.quiz_instance.public_ip
+# -------------------- Subnet --------------------
+resource "aws_subnet" "simple_subnet" {
+  vpc_id                  = aws_vpc.simple_vpc.id
+  cidr_block              = "10.0.1.0/24"
+  availability_zone       = "ap-south-1a"
+  map_public_ip_on_launch = true
+  tags = {
+    Name = "SimpleSubnet"
+  }
 }
 
-output "instance_id" {
-  description = "ID of the EC2 instance"
-  value       = aws_instance.quiz_instance.id
-}
+# -------------------- Security Group --------------------
+resource "aws_security_group" "simple_sg" {
+  vpc_id      = aws_vpc.simple_vpc.id
+  name        = "simple_sg"
+  description = "Allow SSH access"
 
-output "instance_state" {
-  description = "State of the EC2 instance"
-  value       = aws_instance.quiz_instance.state
-}
-
-# Optional: Add security group resource if needed
-resource "aws_security_group" "quiz_security_group" {
-  name        = "quiz_whiz_kid_sg"
-  description = "Allow SSH and HTTP traffic"
-  
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # Allow SSH from anywhere (or restrict to a specific IP)
-  }
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # Allow HTTP from anywhere
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]  # Allow all outbound traffic
+    cidr_blocks = ["0.0.0.0/0"]
   }
-}
-
-# Attach the security group to the EC2 instance
-resource "aws_instance" "quiz_instance_with_sg" {
-  ami           = var.ami_id
-  instance_type = var.instance_type
-  key_name      = var.key_name
-
-  security_groups = [aws_security_group.quiz_security_group.name]
 
   tags = {
-    Name = "Quiz-Whiz-Kid-With-Security"
+    Name = "SimpleSG"
   }
 }
 
-# Optionally, add Elastic IP
-resource "aws_eip" "quiz_instance_eip" {
-  instance = aws_instance.quiz_instance.id
+# -------------------- Key Pair --------------------
+resource "aws_key_pair" "simple_key" {
+  key_name   = "simple-key"
+  public_key = file("${path.module}/simple-key.pub") # Replace with your actual public key path
 }
 
-output "elastic_ip" {
-  description = "Elastic IP for the EC2 instance"
-  value       = aws_eip.quiz_instance_eip.public_ip
+# -------------------- EC2 Instance --------------------
+resource "aws_instance" "simple_ec2" {
+  ami                    = "ami-0f58b397bc5c1f2e8"  # Ubuntu 22.04 LTS in ap-south-1
+  instance_type          = "t2.micro"
+  key_name               = aws_key_pair.simple_key.key_name
+  associate_public_ip_address = true
+  subnet_id              = aws_subnet.simple_subnet.id
+  vpc_security_group_ids = [aws_security_group.simple_sg.id]
+
+  tags = {
+    Name = "SimpleEC2Instance"
+  }
+}
+
+# -------------------- Outputs --------------------
+output "instance_public_ip" {
+  value       = aws_instance.simple_ec2.public_ip
+  description = "Public IP of the EC2 instance"
+}
+
+output "instance_id" {
+  value       = aws_instance.simple_ec2.id
+  description = "Instance ID of the EC2 instance"
 }
