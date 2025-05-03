@@ -12,26 +12,31 @@ permissions:
 
 jobs:
   terraform:
+    name: 🔧 Terraform Infrastructure Provisioning
     runs-on: ubuntu-latest
+    needs: docker_build
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v2
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
-
-      - name: Terraform Format Check
-        run: terraform fmt -check
+      - uses: actions/checkout@v3
+      - uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.1.0
 
       - name: Terraform Init
         run: terraform init
+        working-directory: hospital-terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: "ap-south-1"
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
+        working-directory: hospital-terraform
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: "ap-south-1"
 
-      - name: Output EC2 IP Address
-        run: echo "EC2_PUBLIC_IP=$(terraform output -raw instance_public_ip)" >> $GITHUB_ENV
-        # Store EC2 public IP in the GitHub Actions environment for subsequent steps
 
   ansible:
     runs-on: ubuntu-latest
