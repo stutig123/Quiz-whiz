@@ -30,7 +30,7 @@ jobs:
         run: terraform apply -auto-approve
 
       - name: Output EC2 IP Address
-        run: echo "EC2_PUBLIC_IP=$(terraform output -raw ec2_public_ip)" >> $GITHUB_ENV
+        run: echo "EC2_PUBLIC_IP=$(terraform output -raw instance_public_ip)" >> $GITHUB_ENV
         # Store EC2 public IP in the GitHub Actions environment for subsequent steps
 
   ansible:
@@ -58,4 +58,3 @@ jobs:
       - name: Run Ansible Playbook
         run: |
           ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
-          # Run the Ansible playbook to configure the EC2 instance
