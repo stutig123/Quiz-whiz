@@ -1,0 +1,61 @@
+name: DevSecOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read  # Read repository contents
+  security-events: write  # Write permissions for security events
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+      - name: Output EC2 IP Address
+        run: echo "EC2_PUBLIC_IP=$(terraform output -raw ec2_public_ip)" >> $GITHUB_ENV
+        # Store EC2 public IP in the GitHub Actions environment for subsequent steps
+
+  ansible:
+    runs-on: ubuntu-latest
+    needs: terraform  # Ensure Ansible runs after Terraform finishes
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Install Ansible
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible
+
+      - name: Create SSH private key file
+        run: |
+          echo "$SSH_PRIVATE_KEY" > $HOME/.ssh/id_rsa  # Create SSH key file from GitHub Secrets
+          chmod 600 $HOME/.ssh/id_rsa  # Set secure permissions for the SSH key
+
+      - name: Update Inventory with EC2 IP
+        run: |
+          sed -i "s/{{ EC2_PUBLIC_IP }}/$EC2_PUBLIC_IP/" ansible/inventory.ini
+          # Replace the placeholder {{ EC2_PUBLIC_IP }} in inventory.ini with the actual EC2 IP
+
+      - name: Run Ansible Playbook
+        run: |
+          ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
+          # Run the Ansible playbook to configure the EC2 instance
