@@ -1,10 +1,8 @@
-# playbook.yml
 ---
 - name: Configure EC2 Instance
   hosts: webservers
   become: yes
   tasks:
-  
     - name: Update apt packages
       apt:
         update_cache: yes
@@ -29,4 +27,4 @@
 
     - name: Print public IP of the EC2 instance
       debug:
-        msg: "EC2 Instance Public IP is {{ hostvars['3.110.115.198'].ansible_host }}"
+        msg: "EC2 Instance Public IP is {{ ansible_host }}"
