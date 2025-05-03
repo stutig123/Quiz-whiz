@@ -27,7 +27,7 @@ resource "aws_subnet" "simple_subnet" {
 resource "aws_security_group" "simple_sg" {
   vpc_id      = aws_vpc.simple_vpc.id
   name        = "simple_sg"
-  description = "Allow SSH access"
+  description = "Allow SSH"
 
   ingress {
     from_port   = 22
@@ -51,20 +51,27 @@ resource "aws_security_group" "simple_sg" {
 # -------------------- Key Pair --------------------
 resource "aws_key_pair" "simple_key" {
   key_name   = "simple-key"
-  public_key = file("${path.module}/simple-key.pub") # Replace with your actual public key path
+  public_key = file("${path.module}/simple-key.pub")
 }
 
 # -------------------- EC2 Instance --------------------
 resource "aws_instance" "simple_ec2" {
-  ami                    = "ami-0f58b397bc5c1f2e8"  # Ubuntu 22.04 LTS in ap-south-1
-  instance_type          = "t2.micro"
-  key_name               = aws_key_pair.simple_key.key_name
+  ami                         = "ami-0f58b397bc5c1f2e8" # Ubuntu 22.04
+  instance_type               = "t2.micro"
+  key_name                    = aws_key_pair.simple_key.key_name
   associate_public_ip_address = true
-  subnet_id              = aws_subnet.simple_subnet.id
-  vpc_security_group_ids = [aws_security_group.simple_sg.id]
+  subnet_id                   = aws_subnet.simple_subnet.id
+  vpc_security_group_ids      = [aws_security_group.simple_sg.id]
 
   tags = {
     Name = "SimpleEC2Instance"
+  }
+
+  provisioner "local-exec" {
+    command = <<EOT
+      echo "[ec2]" > inventory.ini
+      echo "${self.public_ip} ansible_user=ubuntu ansible_ssh_private_key_file=key.pem" >> inventory.ini
+    EOT
   }
 }
 
@@ -72,9 +79,4 @@ resource "aws_instance" "simple_ec2" {
 output "instance_public_ip" {
   value       = aws_instance.simple_ec2.public_ip
   description = "Public IP of the EC2 instance"
-}
-
-output "instance_id" {
-  value       = aws_instance.simple_ec2.id
-  description = "Instance ID of the EC2 instance"
 }

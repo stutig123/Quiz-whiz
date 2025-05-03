@@ -1,77 +1,48 @@
-name: DevSecOps CI/CD Pipeline
+name: Terraform + Ansible CI/CD
 
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
-
-permissions:
-  contents: read
-  security-events: write
 
 jobs:
-  terraform:
-    name: 🔧 Terraform Infrastructure Provisioning
+  terraform-ansible-pipeline:
     runs-on: ubuntu-latest
-    needs: docker_build
+
     steps:
-      - name: Checkout Repository
+      # -------- CHECKOUT CODE --------
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: 1.1.0
+      # -------- TERRAFORM SETUP --------
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
 
       - name: Terraform Init
         run: terraform init
-        working-directory: terraform  # Adjusted to point to the terraform directory
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: "ap-south-1"
+
+      - name: Terraform Format Check
+        run: terraform fmt -check
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -out=tfplan
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve
-        working-directory: terraform  # Adjusted to point to the terraform directory
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: "ap-south-1"
+        run: terraform apply -auto-approve tfplan
 
-      - name: Extract EC2 Public IP
-        id: get_ip
-        run: |
-          echo "EC2_PUBLIC_IP=$(terraform -chdir=terraform output -raw instance_public_ip)" >> $GITHUB_ENV
-          # Store EC2 IP address in GitHub environment for next jobs
-
-  ansible:
-    name: 🚀 Ansible Deployment
-    runs-on: ubuntu-latest
-    needs: terraform  # Ensure Ansible runs after Terraform completes
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
+      # -------- ANSIBLE SETUP --------
       - name: Install Ansible
         run: |
           sudo apt update
-          sudo apt install -y ansible sshpass
+          sudo apt install -y ansible
 
-      - name: Create SSH Private Key
+      - name: Add SSH key for Ansible
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-
-      - name: Update Inventory with EC2 IP
-        run: |
-          echo "[web]" > ansible/inventory.ini
-          echo "$EC2_PUBLIC_IP ansible_user=ubuntu" >> ansible/inventory.ini
-          # Update inventory.ini with the dynamic EC2 public IP from Terraform output
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > key.pem
+          chmod 600 key.pem
 
       - name: Run Ansible Playbook
         run: |
-          ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
-          # Run your Ansible playbook to deploy your app
+          ansible-playbook -i inventory.ini playbook.yml --private-key key.pem
