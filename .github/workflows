@@ -1,10 +1,3 @@
-name: Deploy EC2 Instance and Configure via Ansible
-
-on:
-  push:
-    branches:
-      - main
-
 jobs:
   terraform:
     runs-on: ubuntu-latest
@@ -24,6 +17,9 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve
 
+      - name: Output EC2 IP Address
+        run: echo "EC2_PUBLIC_IP=$(terraform output -raw ec2_public_ip)" >> $GITHUB_ENV
+
   ansible:
     runs-on: ubuntu-latest
     needs: terraform
@@ -35,6 +31,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ansible
+
+      - name: Update Inventory with EC2 IP
+        run: |
+          sed -i "s/{{ EC2_PUBLIC_IP }}/$EC2_PUBLIC_IP/" ansible/inventory.ini
 
       - name: Run Ansible Playbook
         run: |
