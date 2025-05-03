@@ -7,8 +7,8 @@ on:
     branches: [main]
 
 permissions:
-  contents: read  # Read repository contents
-  security-events: write  # Write permissions for security events
+  contents: read
+  security-events: write
 
 jobs:
   terraform:
@@ -16,14 +16,17 @@ jobs:
     runs-on: ubuntu-latest
     needs: docker_build
     steps:
-      - uses: actions/checkout@v3
-      - uses: hashicorp/setup-terraform@v1
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
         with:
           terraform_version: 1.1.0
 
       - name: Terraform Init
         run: terraform init
-        working-directory: hospital-terraform
+        working-directory: terraform  # Adjusted to point to the terraform directory
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -31,35 +34,44 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
-        working-directory: hospital-terraform
+        working-directory: terraform  # Adjusted to point to the terraform directory
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: "ap-south-1"
 
+      - name: Extract EC2 Public IP
+        id: get_ip
+        run: |
+          echo "EC2_PUBLIC_IP=$(terraform -chdir=terraform output -raw instance_public_ip)" >> $GITHUB_ENV
+          # Store EC2 IP address in GitHub environment for next jobs
 
   ansible:
+    name: 🚀 Ansible Deployment
     runs-on: ubuntu-latest
-    needs: terraform  # Ensure Ansible runs after Terraform finishes
+    needs: terraform  # Ensure Ansible runs after Terraform completes
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Install Ansible
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ansible
+          sudo apt update
+          sudo apt install -y ansible sshpass
 
-      - name: Create SSH private key file
+      - name: Create SSH Private Key
         run: |
-          echo "$SSH_PRIVATE_KEY" > $HOME/.ssh/id_rsa  # Create SSH key file from GitHub Secrets
-          chmod 600 $HOME/.ssh/id_rsa  # Set secure permissions for the SSH key
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
 
       - name: Update Inventory with EC2 IP
         run: |
-          sed -i "s/{{ EC2_PUBLIC_IP }}/$EC2_PUBLIC_IP/" ansible/inventory.ini
-          # Replace the placeholder {{ EC2_PUBLIC_IP }} in inventory.ini with the actual EC2 IP
+          echo "[web]" > ansible/inventory.ini
+          echo "$EC2_PUBLIC_IP ansible_user=ubuntu" >> ansible/inventory.ini
+          # Update inventory.ini with the dynamic EC2 public IP from Terraform output
 
       - name: Run Ansible Playbook
         run: |
           ansible-playbook -i ansible/inventory.ini ansible/playbook.yml
+          # Run your Ansible playbook to deploy your app
