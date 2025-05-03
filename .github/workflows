@@ -32,6 +32,11 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y ansible
 
+      - name: Create SSH private key file
+        run: |
+          echo "$SSH_PRIVATE_KEY" > $HOME/.ssh/id_rsa
+          chmod 600 $HOME/.ssh/id_rsa  # Set permissions to be secure
+
       - name: Update Inventory with EC2 IP
         run: |
           sed -i "s/{{ EC2_PUBLIC_IP }}/$EC2_PUBLIC_IP/" ansible/inventory.ini
