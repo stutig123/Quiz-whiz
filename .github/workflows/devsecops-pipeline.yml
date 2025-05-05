@@ -24,9 +24,12 @@ jobs:
         with:
           terraform_version: 1.1.0
 
+      - name: Set Terraform variables
+        run: echo "TF_VAR_ssh_public_key=${{ secrets.SSH_PUBLIC_KEY }}" >> $GITHUB_ENV
+
       - name: Terraform Init
         run: terraform init
-        working-directory: Terraform
+        working-directory: terraform
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -34,7 +37,7 @@ jobs:
 
       - name: Terraform Apply
         run: terraform apply -auto-approve
-        working-directory: Terraform
+        working-directory: terraform
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -53,11 +56,11 @@ jobs:
 
       - name: Create SSH key
         run: |
-          echo "${{ secrets.EC2_SSH_KEY }}" > stuti-key-1.pem
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > stuti-key-1.pem
           chmod 600 stuti-key-1.pem
 
       - name: Run Ansible Playbook
         run: |
-          ansible-playbook ansible/playbook.yml -i ansible/inventory.ini --private-key stuti-key.pem -u ${{ secrets.EC2_USER }}
+          ansible-playbook ansible/playbook.yml -i ansible/inventory.ini --private-key stuti-key-1.pem -u ${{ secrets.EC2_USER }}
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
