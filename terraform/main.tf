@@ -42,7 +42,7 @@ resource "aws_security_group" "allow_ssh" {
 
 resource "aws_key_pair" "quiz_key" {
   key_name   = "quiz"
-  public_key = file("C:\\Users\\Stuti Gambhir\\quiz-whiz-kid\\Terraform\\quiz.pub")  # Path to the public key you generated
+  public_key = var.AWS_PUBLIC_KEY  # Path to the public key you generated
 }
 
 resource "aws_instance" "quiz_instance" {
