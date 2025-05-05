@@ -1,33 +1,29 @@
 provider "aws" {
-  region = "ap-south-1"
+  region = "us-east-1"  # Set your desired AWS region
 }
 
-# -------------------- VPC --------------------
-resource "aws_vpc" "simple_vpc" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_support   = true
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+  enable_dns_support = true
   enable_dns_hostnames = true
   tags = {
-    Name = "SimpleVPC"
+    Name = "main_vpc"
   }
 }
 
-# -------------------- Subnet --------------------
-resource "aws_subnet" "simple_subnet" {
-  vpc_id                  = aws_vpc.simple_vpc.id
-  cidr_block              = "10.0.1.0/24"
-  availability_zone       = "ap-south-1a"
-  map_public_ip_on_launch = true
+resource "aws_subnet" "main" {
+  vpc_id     = aws_vpc.main.id
+  cidr_block = "10.0.1.0/24"
+  availability_zone = "us-east-1a"  # Adjust to the region you're using
   tags = {
-    Name = "SimpleSubnet"
+    Name = "main_subnet"
   }
 }
 
-# -------------------- Security Group --------------------
-resource "aws_security_group" "simple_sg" {
-  vpc_id      = aws_vpc.simple_vpc.id
-  name        = "simple_sg"
-  description = "Allow SSH"
+resource "aws_security_group" "allow_ssh" {
+  name        = "allow_ssh"
+  description = "Allow SSH access"
+  vpc_id      = aws_vpc.main.id
 
   ingress {
     from_port   = 22
@@ -42,41 +38,24 @@ resource "aws_security_group" "simple_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+}
 
+resource "aws_key_pair" "quiz_key" {
+  key_name   = "quiz"
+  public_key = file("C:\\Users\\Stuti Gambhir\\.ssh\\quiz.pub")  # Path to the public key you generated
+}
+
+resource "aws_instance" "quiz_instance" {
+  ami           = "ami-0c55b159cbfafe1f0"  # Replace with the appropriate AMI ID
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.main.id
+  security_group_ids = [aws_security_group.allow_ssh.id]
+  key_name      = aws_key_pair.quiz_key.key_name
   tags = {
-    Name = "SimpleSG"
+    Name = "Quiz-Whiz-Instance"
   }
 }
 
-# -------------------- Key Pair --------------------
-resource "aws_key_pair" "simple_key" {
-  key_name   = "simple-key"
-  public_key = file("${path.module}/simple-key.pub")
-}
-
-# -------------------- EC2 Instance --------------------
-resource "aws_instance" "simple_ec2" {
-  ami                         = "ami-0f58b397bc5c1f2e8" # Ubuntu 22.04
-  instance_type               = "t2.micro"
-  key_name                    = aws_key_pair.simple_key.key_name
-  associate_public_ip_address = true
-  subnet_id                   = aws_subnet.simple_subnet.id
-  vpc_security_group_ids      = [aws_security_group.simple_sg.id]
-
-  tags = {
-    Name = "SimpleEC2Instance"
-  }
-
-  provisioner "local-exec" {
-    command = <<EOT
-      echo "[ec2]" > inventory.ini
-      echo "${self.public_ip} ansible_user=ubuntu ansible_ssh_private_key_file=key.pem" >> inventory.ini
-    EOT
-  }
-}
-
-# -------------------- Outputs --------------------
 output "instance_public_ip" {
-  value       = aws_instance.simple_ec2.public_ip
-  description = "Public IP of the EC2 instance"
+  value = aws_instance.quiz_instance.public_ip
 }
