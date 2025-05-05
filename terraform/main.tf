@@ -48,11 +48,11 @@ resource "aws_key_pair" "quiz_key" {
 }
 
 resource "aws_instance" "quiz_instance" {
-  ami                    = "ami-0c55b159cbfafe1f0"  # Amazon Linux 2 AMI in us-east-1
-  instance_type          = "t2.micro"
-  subnet_id              = aws_subnet.main.id
-  security_group_ids     = [aws_security_group.allow_ssh.id]
-  key_name               = aws_key_pair.quiz_key.key_name
+  ami                         = "ami-0c55b159cbfafe1f0"  # Amazon Linux 2 AMI in us-east-1
+  instance_type               = "t2.micro"
+  subnet_id                   = aws_subnet.main.id
+  vpc_security_group_ids      = [aws_security_group.allow_ssh.id]
+  key_name                    = aws_key_pair.quiz_key.key_name
   associate_public_ip_address = true
 
   tags = {
