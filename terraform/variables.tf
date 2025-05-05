@@ -1,3 +1,4 @@
-variable "AWS_PUBLIC_KEY" {
-  type = string
+variable "ssh_public_key" {
+  description = "SSH public key for the EC2 instance"
+  type        = string
 }
