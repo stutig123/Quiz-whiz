@@ -62,6 +62,6 @@ jobs:
 
       - name: Run Ansible Playbook
         run: |
-          ansible-playbook ansible/playbook.yml -i ansible/inventory.ini --private-key stuti-key-1.pem -u ${{ secrets.EC2_USER }}
+          ansible-playbook ansible/playbook.yml -i ansible/inventory.ini --private-key stuti-key-1.pem -u ${{ secrets.EC2_USER }} --extra-vars "ansible_ssh_user=${{ secrets.EC2_USER }}"
         env:
           ANSIBLE_HOST_KEY_CHECKING: "False"
