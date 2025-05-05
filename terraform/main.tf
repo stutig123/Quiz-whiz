@@ -48,7 +48,7 @@ resource "aws_key_pair" "quiz_key" {
 }
 
 resource "aws_instance" "quiz_instance" {
-  ami                         = "ami-0dcd09a7b0a2c50b1"  # Amazon Linux 2 AMI in ap-south-1 (Mumbai)
+  ami                         = "ami-062f0cc54dbfd8ef1"  # Amazon Linux 2 AMI in ap-south-1 (Mumbai)
   instance_type               = "t2.micro"
   subnet_id                   = aws_subnet.main.id
   vpc_security_group_ids      = [aws_security_group.allow_ssh.id]
