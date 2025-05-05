@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "us-east-1"
+  region = "ap-south-1"  # Set region to ap-south-1 (Mumbai)
 }
 
 resource "aws_vpc" "main" {
@@ -15,7 +15,7 @@ resource "aws_vpc" "main" {
 resource "aws_subnet" "main" {
   vpc_id            = aws_vpc.main.id
   cidr_block        = "10.0.1.0/24"
-  availability_zone = "us-east-1a"
+  availability_zone = "ap-south-1a"  # Update availability zone to ap-south-1a
 
   tags = {
     Name = "main_subnet"
@@ -44,11 +44,11 @@ resource "aws_security_group" "allow_ssh" {
 
 resource "aws_key_pair" "quiz_key" {
   key_name   = "quiz"
-  public_key = var.ssh_public_key
+  public_key = var.ssh_public_key  # Ensure that the SSH public key is passed here
 }
 
 resource "aws_instance" "quiz_instance" {
-  ami                         = "ami-0c55b159cbfafe1f0"  # Amazon Linux 2 AMI in us-east-1
+  ami                         = "ami-0dcd09a7b0a2c50b1"  # Amazon Linux 2 AMI in ap-south-1 (Mumbai)
   instance_type               = "t2.micro"
   subnet_id                   = aws_subnet.main.id
   vpc_security_group_ids      = [aws_security_group.allow_ssh.id]
